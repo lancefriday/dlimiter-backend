@@ -1,57 +1,77 @@
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Links</title></head>
-<body>
-  <h2>Links</h2>
-  <nav><a href="/dashboard">Dashboard</a> | <a href="/files">Files</a></nav>
+@extends('layouts.app')
 
-  @if (session('ok')) <p style="color:green">{{ session('ok') }}</p> @endif
+@section('title', 'Links')
+@section('heading', 'Links')
+@section('subheading', 'Review share links, copy URLs, and revoke access.')
 
-  <table border="1" cellpadding="6" cellspacing="0" style="margin-top:12px;">
+@section('content')
+  <table>
     <thead>
       <tr>
-        <th>ID</th>
+        <th style="width:70px;">ID</th>
         <th>File</th>
-        <th>Public</th>
-        <th>Max</th>
-        <th>Downloads</th>
-        <th>Expires</th>
-        <th>Revoked</th>
-        <th>Download</th>
-        <th>Action</th>
+        <th style="width:120px;">Type</th>
+        <th style="width:80px;">Max</th>
+        <th style="width:100px;">Used</th>
+        <th style="width:190px;">Expires</th>
+        <th style="width:170px;">Revoked</th>
+        <th>Download Page</th>
+        <th style="width:110px;">Action</th>
       </tr>
     </thead>
     <tbody>
-      @foreach ($links as $l)
+      @forelse ($links as $l)
         <tr>
           <td>{{ $l->id }}</td>
           <td>{{ $l->fileItem->original_name ?? '' }}</td>
-          <td>{{ $l->is_public ? 'yes' : 'no' }}</td>
+
+          <td>
+            @if($l->is_public)
+              Public
+            @else
+              Restricted
+            @endif
+          </td>
+
           <td>{{ $l->max_downloads }}</td>
           <td>{{ $l->downloads_count }}</td>
           <td>{{ $l->expires_at }}</td>
           <td>{{ $l->revoked_at }}</td>
+
           <td>
-            {{-- token is not stored, so show prefix only --}}
-            {{ $l->token_prefix }}...
+            @php
+              $token = null;
+              try {
+                $token = $l->token_enc ? \Illuminate\Support\Facades\Crypt::decryptString($l->token_enc) : null;
+              } catch (\Throwable $e) { $token = null; }
+              $dlPage = $token ? url("/download/$token") : null;
+            @endphp
+
+            @if($dlPage)
+              <div class="row">
+                <div class="mono" style="flex:1;">
+                  <a href="{{ $dlPage }}">{{ $dlPage }}</a>
+                </div>
+                <button class="btn-copy" type="button" onclick="copyText('{{ $dlPage }}')">Copy</button>
+              </div>
+            @else
+              <span class="muted">(old link – token not stored)</span>
+            @endif
           </td>
+
           <td>
-            <form method="POST" action="/links/{{ $l->id }}/revoke">
+            <form method="POST" action="/links/{{ $l->id }}/revoke" style="margin:0;">
               @csrf
-              <button type="submit">Revoke</button>
+              <button class="btn btn-ghost" type="submit">Revoke</button>
             </form>
           </td>
         </tr>
-      @endforeach
-
-      @if ($links->count() === 0)
+      @empty
         <tr><td colspan="9">No links yet.</td></tr>
-      @endif
+      @endforelse
     </tbody>
   </table>
 
-  <div style="margin-top:12px;">
-    {{ $links->links() }}
-  </div>
-</body>
-</html>
+  <div class="sp12"></div>
+  <div>{{ $links->links() }}</div>
+@endsection

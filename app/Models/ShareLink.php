@@ -9,6 +9,16 @@ use Illuminate\Support\Str;
 class ShareLink extends Model
 {
     use HasFactory;
+    public static function resolveToken(string $token): ?self
+        {
+            $prefix = self::prefixToken($token);
+            $hash = self::hashToken($token);
+
+            return self::query()
+                ->where('token_prefix', $prefix)
+                ->where('token_hash', $hash)
+                ->first();
+        }
 
     protected $fillable = [
         'file_item_id',
@@ -81,4 +91,6 @@ class ShareLink extends Model
     {
         return max(0, $this->max_downloads - $this->downloads_count);
     }
+
+
 }

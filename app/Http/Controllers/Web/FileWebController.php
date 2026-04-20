@@ -49,4 +49,36 @@ class FileWebController extends Controller
 
         return redirect('/files')->with('ok', 'Uploaded!');
     }
+
+    public function delete(Request $request, int $fileId)
+    {
+    $user = $request->user();
+    $file = \App\Models\FileItem::findOrFail($fileId);
+
+    if (!$user->is_admin && $file->owner_id !== $user->id) {
+        abort(403);
+    }
+
+    \Illuminate\Support\Facades\DB::transaction(function () use ($file) {
+        // revoke all share links
+        \App\Models\ShareLink::where('file_item_id', $file->id)->update([
+            'revoked_at' => now(),
+        ]);
+
+        // delete stored file
+        $disk = $file->storage_disk ?? 'local';
+        $path = $file->storage_path;
+
+        if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($path)) {
+            \Illuminate\Support\Facades\Storage::disk($disk)->delete($path);
+        }
+
+        // delete related rows
+        \Illuminate\Support\Facades\DB::table('download_events')->where('file_item_id', $file->id)->delete();
+        \App\Models\ShareLink::where('file_item_id', $file->id)->delete();
+        $file->delete();
+    });
+
+    return redirect('/files')->with('ok', 'File deleted.');
+    }
 }

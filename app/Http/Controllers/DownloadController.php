@@ -12,6 +12,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DownloadController extends Controller
 {
+
+
+
+
     // Public download endpoint: only works for public links (no downloader restriction)
     public function publicDownload(Request $request, string $token)
     {
@@ -25,21 +29,6 @@ class DownloadController extends Controller
         return $this->serve($request, $link);
     }
 
-    // Auth-only endpoint: supports restricted links
-    public function authDownload(Request $request, string $token)
-    {
-        $user = $request->user();
-        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
-
-        $link = $this->findByToken($token);
-        if (!$link) return response()->json(['message' => 'Not found'], 404);
-
-        if ($link->downloader_user_id !== null && $link->downloader_user_id !== $user->id) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
-
-        return $this->serve($request, $link);
-    }
 
     private function serve(Request $request, ShareLink $link)
     {
