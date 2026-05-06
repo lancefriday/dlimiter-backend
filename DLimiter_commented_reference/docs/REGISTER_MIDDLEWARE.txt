@@ -1,0 +1,10 @@
+Add these in app/Http/Kernel.php
+
+protected $routeMiddleware = [
+  ...
+  'web.auth' => \App\Http\Middleware\WebAuth::class,
+  'web.admin' => \App\Http\Middleware\AdminOnly::class,
+];
+
+Then run:
+php artisan optimize:clear
