@@ -10,6 +10,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/*
+ * DownloadController.php
+ *
+ * Purpose:
+ * - Part of the DLimiter backend.
+ * - This file contains DownloadController and related request handlers.
+ *
+ * Notes:
+ * - Comments in this file describe intent and safety checks.
+ * - Token values are sensitive. Store and display them carefully.
+ */
+
+/**
+ * DownloadController
+ *
+ * Role:
+ * - Controller layer that accepts an HTTP request, applies validation and authorization,
+ *   then calls model or storage operations.
+ */
 class DownloadController extends Controller
 {
 
@@ -17,6 +36,13 @@ class DownloadController extends Controller
 
 
     // Public download endpoint: only works for public links (no downloader restriction)
+/**
+ * Download endpoint for public links only. Rejects restricted links that require authentication.
+ *
+ * @param Request $request
+ * @param string $token
+ * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response|mixed
+ */
     public function publicDownload(Request $request, string $token)
     {
         $link = $this->findByToken($token);
@@ -30,6 +56,13 @@ class DownloadController extends Controller
     }
 
 
+/**
+ * Shared download implementation that enforces expiry and download limits, logs the download event, streams the file, and triggers cleanup when limits are reached.
+ *
+ * @param Request $request
+ * @param ShareLink $link
+ * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response|mixed
+ */
     private function serve(Request $request, ShareLink $link)
     {
         if ($link->isRevoked()) return response()->json(['message' => 'Link revoked'], 410);
@@ -39,6 +72,7 @@ class DownloadController extends Controller
 
         // Enforce limits atomically
         $shouldTriggerDelete = false;
+        // Use a transaction + row lock to prevent race conditions on downloads_count.
         DB::transaction(function () use ($request, $link, &$shouldTriggerDelete) {
             $locked = ShareLink::where('id', $link->id)->lockForUpdate()->firstOrFail();
 
@@ -58,6 +92,7 @@ class DownloadController extends Controller
             $locked->last_download_at = now();
             $locked->save();
 
+            // Record an audit event for reporting and admin review.
             DownloadEvent::create([
                 'file_item_id' => $locked->file_item_id,
                 'share_link_id' => $locked->id,
@@ -102,6 +137,12 @@ class DownloadController extends Controller
         return $response;
     }
 
+/**
+ * Resolve a plaintext token to a ShareLink row by prefix+hash match.
+ *
+ * @param string $token
+ * @return ?ShareLink
+ */
     private function findByToken(string $token): ?ShareLink
     {
         if (strlen($token) < 12) return null;

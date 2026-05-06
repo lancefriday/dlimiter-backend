@@ -1,13 +1,37 @@
 <?php
 
+/**
+ * DownloadPageController.php
+ *
+ * Public download landing page that validates a token and shows status and the appropriate download action.
+ *
+ * Routes:
+ *   - GET /download/{token} -> show()
+ *
+ * Notes:
+ *   - Public and restricted links both resolve here; restricted links require login before downloading.
+ *   - Does not stream the file; it only shows a page and a button linking to the actual download route.
+ */
+
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShareLink;
 use Illuminate\Http\Request;
 
+/**
+ * Public download landing page that validates a token and shows status and the appropriate download action.
+ */
 class DownloadPageController extends Controller
 {
+/**
+ * Resolve a share token and render the download landing page with status checks.
+ *
+ * @param Request $request
+ * @param string $token
+ * @return \Illuminate\View\View|mixed
+ */
     public function show(Request $request, string $token)
     {
         $link = ShareLink::resolveToken($token);

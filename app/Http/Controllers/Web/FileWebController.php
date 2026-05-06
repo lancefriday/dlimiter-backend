@@ -1,5 +1,21 @@
 <?php
 
+/**
+ * FileWebController.php
+ *
+ * Web UI controller for file listing, upload, and deletion.
+ *
+ * Routes:
+ *   - GET /files -> index()
+ *   - POST /files/upload -> upload()
+ *   - POST /files/{fileId}/delete -> delete()
+ *
+ * Notes:
+ *   - Uploads store the file under storage/app/uploads/{userId}/... and create a FileItem record.
+ *   - Delete removes file storage, related links, and related download events.
+ */
+
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
@@ -7,8 +23,17 @@ use App\Models\FileItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Web UI controller for file listing, upload, and deletion.
+ */
 class FileWebController extends Controller
 {
+/**
+ * Render the page listing the relevant records for the current user.
+ *
+ * @param Request $request
+ * @return \Illuminate\View\View|mixed
+ */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -26,6 +51,12 @@ class FileWebController extends Controller
         ]);
     }
 
+/**
+ * Validate and store an uploaded file, then create a FileItem record.
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|mixed
+ */
     public function upload(Request $request)
     {
         $user = $request->user();
@@ -50,6 +81,13 @@ class FileWebController extends Controller
         return redirect('/files')->with('ok', 'Uploaded!');
     }
 
+/**
+ * Delete a file item and its stored file, and remove related links and events.
+ *
+ * @param Request $request
+ * @param int $fileId
+ * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|mixed
+ */
     public function delete(Request $request, int $fileId)
     {
     $user = $request->user();

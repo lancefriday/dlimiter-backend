@@ -1,13 +1,36 @@
 <?php
 
+/**
+ * AdminDownloadEventsController.php
+ *
+ * Admin-only audit log view for download events (file, user, IP, device, timestamp).
+ *
+ * Routes:
+ *   - GET /admin/download-events -> index()
+ *
+ * Notes:
+ *   - Requires admin (is_admin=1).
+ *   - This controller reads download_events and joins file_items and users when available.
+ */
+
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Admin-only audit log view for download events (file, user, IP, device, timestamp).
+ */
 class AdminDownloadEventsController extends Controller
 {
+/**
+ * Render the page listing the relevant records for the current user.
+ *
+ * @param Request $request
+ * @return \Illuminate\View\View|mixed
+ */
     public function index(Request $request)
     {
         $user = $request->user();

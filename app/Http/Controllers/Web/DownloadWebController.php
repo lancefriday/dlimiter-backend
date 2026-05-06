@@ -1,5 +1,19 @@
 <?php
 
+/**
+ * DownloadWebController.php
+ *
+ * Session-based restricted download endpoint. Enforces login + optional downloader restriction and streams file.
+ *
+ * Routes:
+ *   - GET /download-auth/{token} -> authDownload()
+ *
+ * Notes:
+ *   - Only for restricted (non-public) share links.
+ *   - Increments download count and records a download event (downloader_user_id, ip, user_agent, downloaded_at).
+ */
+
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
@@ -9,9 +23,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Session-based restricted download endpoint. Enforces login + optional downloader restriction and streams file.
+ */
 class DownloadWebController extends Controller
 {
     // Session-based restricted download
+/**
+ * Enforce restricted-link rules and stream the stored file to the authenticated user.
+ *
+ * @param Request $request
+ * @param string $token
+ * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|mixed
+ */
     public function authDownload(Request $request, string $token)
     {
         $user = $request->user();

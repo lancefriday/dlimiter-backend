@@ -8,8 +8,33 @@ use App\Models\ShareLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/*
+ * ShareLinkController.php
+ *
+ * Purpose:
+ * - Part of the DLimiter backend.
+ * - This file contains ShareLinkController and related request handlers.
+ *
+ * Notes:
+ * - Comments in this file describe intent and safety checks.
+ * - Token values are sensitive. Store and display them carefully.
+ */
+
+/**
+ * ShareLinkController
+ *
+ * Role:
+ * - Controller layer that accepts an HTTP request, applies validation and authorization,
+ *   then calls model or storage operations.
+ */
 class ShareLinkController extends Controller
 {
+/**
+ * List share links visible to the current user. Admin sees all, non-admin sees only links for owned files.
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response|mixed
+ */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -27,8 +52,16 @@ class ShareLinkController extends Controller
         ]);
     }
 
+/**
+ * Create a new share link for a file item, enforce policy, compute token hash/prefix, return plaintext token once.
+ *
+ * @param Request $request
+ * @param FileItem $fileItem
+ * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response|mixed
+ */
     public function store(Request $request, FileItem $fileItem)
     {
+        // Policy check: only file owner or admin should create links.
         $this->authorize('update', $fileItem);
 
         $data = $request->validate([
@@ -47,6 +80,7 @@ class ShareLinkController extends Controller
             $isPublic = false;
         }
 
+        // Generate plaintext token once. Store only hash+prefix in DB.
         $token = ShareLink::makeToken();
         $tokenHash = ShareLink::hashToken($token);
         $tokenPrefix = ShareLink::prefixToken($token);
@@ -73,6 +107,13 @@ class ShareLinkController extends Controller
         ], 201);
     }
 
+/**
+ * Revoke a share link and trigger cleanup for stored file if no active links remain.
+ *
+ * @param Request $request
+ * @param ShareLink $shareLink
+ * @return \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\Response|mixed
+ */
     public function revoke(Request $request, ShareLink $shareLink)
     {
         $file = $shareLink->fileItem;

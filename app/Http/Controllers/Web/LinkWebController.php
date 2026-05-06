@@ -1,5 +1,22 @@
 <?php
 
+/**
+ * LinkWebController.php
+ *
+ * Handles share-link listing, creation (public/restricted), and revocation for file items in the web UI.
+ *
+ * Routes:
+ *   - GET /links -> index()
+ *   - POST /files/{fileId}/links -> create()
+ *   - POST /links/{linkId}/revoke -> revoke()
+ *
+ * Notes:
+ *   - Requires session login (web.auth). Non-admin users only operate on their own files/links.
+ *   - When creating a link, the raw token is shown once to the creator. The database stores a prefix + hash for verification.
+ *   - If share_links.token_enc exists, the raw token is also stored encrypted so the Links UI can display a copyable URL later.
+ */
+
+
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
@@ -10,8 +27,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Handles share-link listing, creation (public/restricted), and revocation for file items in the web UI.
+ */
 class LinkWebController extends Controller
 {
+/**
+ * Render the page listing the relevant records for the current user.
+ *
+ * @param Request $request
+ * @return \Illuminate\View\View|mixed
+ */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -30,6 +56,13 @@ class LinkWebController extends Controller
         return view('links.index', compact('links'));
     }
 
+/**
+ * Create a new share link for the given file item using the submitted policy settings.
+ *
+ * @param Request $request
+ * @param int $fileId
+ * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|mixed
+ */
     public function create(Request $request, int $fileId)
     {
         $user = $request->user();
@@ -90,6 +123,13 @@ class LinkWebController extends Controller
         return redirect('/files')->with('share_token', $token);
     }
 
+/**
+ * Revoke an existing share link (sets revoked_at).
+ *
+ * @param Request $request
+ * @param int $linkId
+ * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse|mixed
+ */
     public function revoke(Request $request, int $linkId)
     {
         $user = $request->user();
